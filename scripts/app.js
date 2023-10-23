@@ -8,6 +8,17 @@ const HABBIT_KEY = 'HABBIT_KEY';
 
 const page = {
   menu: document.querySelector('.menu__list'),
+  header: {
+    h1: document.querySelector('.h1'),
+    progressPercent: document.querySelector('.progress__percent'),
+    progressCoverBar: document.querySelector('.progress__cover-bar'),
+  },
+  content: {
+    daysContainer: document.querySelector('#days'),
+    day: document.querySelector('.habbit__day'),
+    dayComment: document.querySelector('.habbit__comment'),
+    nextDay: document.querySelector('.habbit__day'),
+  },
 };
 
 /* utils */
@@ -24,9 +35,9 @@ function saveData() {
   localStorage.setItem(HABBIT_KEY, JSON.stringify(habbits));
 }
 
-/* rerander */
+/* rerender */
 
-function reranderMenu(activeHabbit) {
+function rerenderMenu(activeHabbit) {
   if (!activeHabbit) {
     return;
   }
@@ -37,7 +48,7 @@ function reranderMenu(activeHabbit) {
       const element = document.createElement('button');
       element.setAttribute('menu-habbit-id', habbit.id);
       element.classList.add('menu__item');
-      element.addEventListener('click', () => rerander(habbit.id));
+      element.addEventListener('click', () => rerender(habbit.id));
       element.innerHTML = `<img
                 src="./images/${habbit.icon}.svg"
                 alt="${habbit.name}"
@@ -56,14 +67,65 @@ function reranderMenu(activeHabbit) {
   }
 }
 
-function rerander(activeHabbitId) {
+function renderHead(activeHabbit) {
+  if (!activeHabbit) {
+    return;
+  }
+  page.header.h1.innerText = activeHabbit.name;
+  const progress =
+    activeHabbit.days.length / activeHabbit.target > 1
+      ? 100
+      : (activeHabbit.days.length / activeHabbit.target) * 100;
+  page.header.progressPercent.innerText = progress.toFixed(0) + '%';
+  page.header.progressCoverBar.setAttribute('style', `width: ${progress}%`);
+}
+
+function renderContent(activeHabbit) {
+  if (!activeHabbit) {
+    return;
+  }
+  page.content.daysContainer.innerHTML = '';
+  activeHabbit.days.forEach((day, i) => {
+    const dayLayout = document.createElement('div');
+    dayLayout.classList.add('habbit');
+    dayLayout.innerHTML = `<div class="habbit__day">День ${i + 1}</div>
+              <div class="habbit__comment">
+                ${day.comment}
+              </div>
+              <button class="habbit__delete">
+                <img src="./images/delete.svg" alt="Delete habbit" />
+              </button>`;
+    page.content.daysContainer.appendChild(dayLayout);
+  });
+  page.content.nextDay.innerText = `День ${activeHabbit.days.length + 1}`;
+}
+
+function rerender(activeHabbitId) {
   const activeHabbit = habbits.find((habbit) => habbit.id === activeHabbitId);
-  reranderMenu(activeHabbit);
+  rerenderMenu(activeHabbit);
+  renderHead(activeHabbit);
+  renderContent(activeHabbit);
+}
+
+/* work with days */
+
+function addDays(event) {
+  const form = event.target;
+  event.preventDefault();
+  const data = new FormData(form);
+  const comment = data.get('comment');
+  form['comment'].classList.remove('error');
+  if (!comment) {
+    form['comment'].classList.add('error');
+  }
+  form['comment'].value = '';
 }
 
 /* init */
 
 (() => {
   loadData();
-  rerander(habbits[0].id);
+  rerender(habbits[0].id);
 })();
+
+/* Dont remember push changes */

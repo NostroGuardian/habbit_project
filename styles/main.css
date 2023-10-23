@@ -127,10 +127,10 @@ h1 {
 
 .progress__cover-bar {
   position: absolute;
-  width: 80%;
   height: 5px;
   border-radius: 4px;
   background: #5051f9;
+  transition: all 0.5s;
 }
 
 main {
@@ -193,6 +193,10 @@ input::placeholder {
 
 input:focus {
   outline-color: #e2edf7;
+}
+
+input.error {
+  border: 1px solid #ff8686;
 }
 
 .habbit__form {
