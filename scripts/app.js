@@ -3,6 +3,7 @@
 
 let habbits = [];
 const HABBIT_KEY = 'HABBIT_KEY';
+let globalActiveHabbitId;
 
 /* page */
 
@@ -19,6 +20,10 @@ const page = {
     dayComment: document.querySelector('.habbit__comment'),
     nextDay: document.querySelector('.habbit__day'),
   },
+  popup: {
+    index: document.querySelector('#add-habbit-popup'),
+    iconField: document.querySelector('.popup__form input[name="icon"]'),
+  },
 };
 
 /* utils */
@@ -33,6 +38,35 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem(HABBIT_KEY, JSON.stringify(habbits));
+}
+
+function resetForm(form, fields) {
+  for (const field of fields) {
+    form[field].value = '';
+  }
+}
+
+function validateAndGetFormData(form, fields) {
+  const formData = new FormData(form);
+  const res = {};
+  for (const field of fields) {
+    const fieldValue = formData.get(field);
+    form[field].classList.remove('error');
+    if (!fieldValue) {
+      form[field].classList.add('error');
+    }
+    res[field] = fieldValue;
+  }
+  let isValid = true;
+  for (const field of fields) {
+    if (!res[field]) {
+      isValid = false;
+    }
+  }
+  if (!isValid) {
+    return;
+  }
+  return res;
 }
 
 /* rerender */
@@ -92,7 +126,7 @@ function renderContent(activeHabbit) {
               <div class="habbit__comment">
                 ${day.comment}
               </div>
-              <button class="habbit__delete">
+              <button class="habbit__delete" onclick="removeDay(${i})">
                 <img src="./images/delete.svg" alt="Delete habbit" />
               </button>`;
     page.content.daysContainer.appendChild(dayLayout);
@@ -101,7 +135,12 @@ function renderContent(activeHabbit) {
 }
 
 function rerender(activeHabbitId) {
+  globalActiveHabbitId = activeHabbitId;
   const activeHabbit = habbits.find((habbit) => habbit.id === activeHabbitId);
+  if (!activeHabbit) {
+    return;
+  }
+  document.location.replace(document.location.pathname + '#' + activeHabbitId);
   rerenderMenu(activeHabbit);
   renderHead(activeHabbit);
   renderContent(activeHabbit);
@@ -110,22 +149,94 @@ function rerender(activeHabbitId) {
 /* work with days */
 
 function addDays(event) {
-  const form = event.target;
   event.preventDefault();
-  const data = new FormData(form);
-  const comment = data.get('comment');
-  form['comment'].classList.remove('error');
-  if (!comment) {
-    form['comment'].classList.add('error');
+  const data = validateAndGetFormData(event.target, ['comment']);
+  if (!data) {
+    return;
   }
-  form['comment'].value = '';
+  habbits = habbits.map((habbit) => {
+    if (habbit.id === globalActiveHabbitId) {
+      return {
+        ...habbit,
+        days: habbit.days.concat([{ comment: data.comment }]),
+      };
+    }
+    return habbit;
+  });
+  resetForm(event.target, ['comment']);
+  rerender(globalActiveHabbitId);
+  saveData();
+}
+
+function removeDay(dayId) {
+  habbits = habbits.map((habbit) => {
+    if (habbit.id === globalActiveHabbitId) {
+      habbit.days.splice(dayId, 1);
+      return {
+        ...habbit,
+        days: habbit.days,
+      };
+    }
+    return habbit;
+  });
+  rerender(globalActiveHabbitId);
+  saveData();
+}
+
+/* work with popup */
+
+function togglePopup() {
+  const cover = page.popup.index;
+  if (cover.classList.contains('cover_hidden')) {
+    cover.classList.remove('cover_hidden');
+  } else {
+    cover.classList.add('cover_hidden');
+  }
+}
+
+function setIcon(context, icon) {
+  page.popup.iconField.value = icon;
+  const activeIcon = document.querySelector('.icon.icon_active');
+  activeIcon.classList.remove('icon_active');
+  context.classList.add('icon_active');
+}
+
+/* work with habbits */
+
+function addHabbit(event) {
+  event.preventDefault();
+  const data = validateAndGetFormData(event.target, ['name', 'icon', 'target']);
+  if (!data) {
+    return;
+  }
+  const maxId = habbits.reduce(
+    (acc, habbit) => (acc > habbit.id ? acc : habbit.id),
+    0
+  );
+  habbits.push({
+    id: maxId + 1,
+    name: data.name,
+    target: data.target,
+    icon: data.icon,
+    days: [],
+  });
+  resetForm(event.target, ['name', 'target']);
+  togglePopup();
+  saveData();
+  rerender(maxId + 1);
 }
 
 /* init */
 
 (() => {
   loadData();
-  rerender(habbits[0].id);
+  const hashId = Number(document.location.hash.replace('#', ''));
+  const urlHabbit = habbits.find((habbit) => habbit.id == hashId);
+  if (urlHabbit) {
+    rerender(urlHabbit.id);
+  } else {
+    rerender(habbits[0].id);
+  }
 })();
 
 /* Dont remember push changes */
